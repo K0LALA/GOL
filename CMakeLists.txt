@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(SDL3_Draw)
+project(draw)
 
 # Set output directory for built objects
 # Makes sure the dynamic library goes into the build directory automatically
@@ -9,8 +9,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/SDL_ttf EXCLUDE_FROM_ALL)
 
-add_executable(SDL3_Draw main.c)
+add_executable(draw main.c)
 
 # Link to SDL3 library
-target_link_libraries(SDL3_Draw PRIVATE SDL3_ttf::SDL3_ttf SDL3::SDL3)
+target_link_libraries(draw PRIVATE SDL3_ttf::SDL3_ttf SDL3::SDL3)
 
