@@ -10,33 +10,31 @@
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 
-#define WIDTH 20
-#define HEIGHT 20
+#define WIDTH 10
+#define HEIGHT 10
 #define PIXEL_SIZE 16
 
-static const SDL_Color BLACK = { 0, 0, 0, SDL_ALPHA_OPAQUE };
-static const SDL_Color WHITE = { 255, 255, 255, SDL_ALPHA_OPAQUE };
-
-static SDL_Surface *deadCell = NULL;
-static SDL_Surface *aliveCell = NULL;
-
 static uint8_t cells[HEIGHT][WIDTH];
-static SDL_Texture *cellsTexture = NULL;
 
-void initSurfaces() {
-    SDL_FillSurfaceRect(deadCell, NULL, 0x000000FF);
-    SDL_FillSurfaceRect(aliveCell, NULL, 0xFFFFFFFF);
-}
-
-void initCells() {
+void showCells() {
     int y;
     for (y = 0; y < HEIGHT; y++) {
         int x;
         for (x = 0; x < WIDTH; x++) {
-            int r = rand();
-            *(*(cells + y) + x) = (r % 13 == 0);
+            printf("%d ", *(*(cells + y) + x));
         }
+        printf("\n");
     }
+    printf("\n");
+}
+
+void initCells() {
+    *(*(cells + 1) + 3) = 1;
+    *(*(cells + 2) + 4) = 1;
+    *(*(cells + 3) + 4) = 1;
+    *(*(cells + 3) + 3) = 1;
+    *(*(cells + 3) + 2) = 1;
+    showCells();
 }
 
 /* This function runs once at startup. */
@@ -57,18 +55,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    /* Create the surface for the cells */
-    cellsTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
 
-    SDL_SetRenderTarget(renderer, cellsTexture);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-    SDL_SetRenderTarget(renderer, NULL);
-
-    /* Create the two constant surfaces for dead/alive cells */
-    deadCell = SDL_CreateSurface(PIXEL_SIZE, PIXEL_SIZE, SDL_PIXELFORMAT_RGBA32);
-    aliveCell = SDL_CreateSurface(PIXEL_SIZE, PIXEL_SIZE, SDL_PIXELFORMAT_RGBA32);
-    initSurfaces();
 
     initCells();
 
@@ -76,22 +65,24 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 }
 
 void displayCells() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     int y;
     for (y = 0; y < HEIGHT; y++) {
         int x;
         for (x = 0; x < WIDTH; x++) {
-            SDL_Rect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
-            SDL_UpdateTexture(cellsTexture, &rect, (*(*(cells + y) + x) ? aliveCell->pixels : deadCell->pixels), deadCell->pitch);
+            if (*(*(cells + y) + x)) {
+                SDL_FRect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
+                SDL_RenderFillRect(renderer, &rect);
+            }
         }
     }
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    SDL_FRect target = {(int)((800 - WIDTH * PIXEL_SIZE) / 2), (int)((600 - HEIGHT * PIXEL_SIZE) / 2), WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE};
-    SDL_RenderTexture(renderer, cellsTexture, NULL, &target);
     SDL_RenderPresent(renderer);
 }
 
 void nextStep() {
+    uint8_t *aboveLine = (uint8_t*)malloc(WIDTH);
     uint8_t *line = (uint8_t*)malloc(WIDTH);
     int y;
     for (y = 0; y < HEIGHT; y++) {
@@ -116,8 +107,12 @@ void nextStep() {
             else
                 *(line + x) = 0;
         }
-        memcpy(*(cells + y), line, WIDTH);
+        if (y > 0) {
+            memcpy(*(cells + y - 1), aboveLine, WIDTH);
+        }
+        memcpy(aboveLine, line, WIDTH);
     }
+    free(aboveLine);
     free(line);
 }
 
@@ -147,7 +142,4 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
-    SDL_DestroyTexture(cellsTexture);
-    SDL_DestroySurface(aliveCell);
-    SDL_DestroySurface(deadCell);
 }
