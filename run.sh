@@ -1,1 +1,1 @@
-gcc main.c -I/opt/sdl3-static/include -L/opt/sdl3-static/lib -lSDL3 -pthread -lm -o gol.out
+gcc main.c -std='gnu17' -I/opt/sdl3-static-c17/include -L/opt/sdl3-static-c17/lib -lSDL3 -pthread -lm -o gol.out
