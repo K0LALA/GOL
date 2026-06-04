@@ -3,7 +3,7 @@
 #include <string.h>
 #include <time.h>
 
-#define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
+#define SDL_MAIN_USE_CALLBACKS 1 /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -16,11 +16,14 @@ static SDL_Renderer *renderer = NULL;
 
 static uint8_t cells[HEIGHT][WIDTH];
 
-void showCells() {
+void showCells()
+{
     int y;
-    for (y = 0; y < HEIGHT; y++) {
+    for (y = 0; y < HEIGHT; y++)
+    {
         int x;
-        for (x = 0; x < WIDTH; x++) {
+        for (x = 0; x < WIDTH; x++)
+        {
             printf("%d ", *(*(cells + y) + x));
         }
         printf("\n");
@@ -28,16 +31,19 @@ void showCells() {
     printf("\n");
 }
 
-void initCells() {
+void initCells()
+{
     /* *(*(cells + 1) + 3) = 1;
-    *(*(cells + 2) + 4) = 1;
-    *(*(cells + 3) + 4) = 1;
-    *(*(cells + 3) + 3) = 1;
-    *(*(cells + 3) + 2) = 1; */
+     *(*(cells + 2) + 4) = 1;
+     *(*(cells + 3) + 4) = 1;
+     *(*(cells + 3) + 3) = 1;
+     *(*(cells + 3) + 2) = 1; */
     int y;
-    for (y = 0; y < HEIGHT; y++) {
+    for (y = 0; y < HEIGHT; y++)
+    {
         int x;
-        for (x = 0; x < WIDTH; x++) {
+        for (x = 0; x < WIDTH; x++)
+        {
             *(*(cells + y) + x) = (rand() % 3 == 0);
         }
     }
@@ -50,17 +56,18 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     srand((int)time(NULL));
 
     /* Initialize SDL */
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO))
+    {
         SDL_Log("Couldn't initialize SDL: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     /* Create the window */
-    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", 800, 600, SDL_WINDOW_RESIZABLE, &window, &renderer)) {
+    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", 800, 600, SDL_WINDOW_RESIZABLE, &window, &renderer))
+    {
         SDL_Log("Couldn't create window and renderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -70,15 +77,19 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     return SDL_APP_CONTINUE;
 }
 
-void displayCells() {
+void displayCells()
+{
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     int y;
-    for (y = 0; y < HEIGHT; y++) {
+    for (y = 0; y < HEIGHT; y++)
+    {
         int x;
-        for (x = 0; x < WIDTH; x++) {
-            if (*(*(cells + y) + x)) {
+        for (x = 0; x < WIDTH; x++)
+        {
+            if (*(*(cells + y) + x))
+            {
                 SDL_FRect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
                 SDL_RenderFillRect(renderer, &rect);
             }
@@ -87,23 +98,31 @@ void displayCells() {
     SDL_RenderPresent(renderer);
 }
 
-void nextStep() {
-    uint8_t *aboveLine = (uint8_t*)malloc(WIDTH);
-    uint8_t *line = (uint8_t*)malloc(WIDTH);
+void nextStep()
+{
+    uint8_t *aboveLine = (uint8_t *)malloc(WIDTH);
+    uint8_t *line = (uint8_t *)malloc(WIDTH);
     int y;
-    for (y = 0; y < HEIGHT; y++) {
+    for (y = 0; y < HEIGHT; y++)
+    {
         int x;
-        for (x = 0; x < WIDTH; x++) {
+        for (x = 0; x < WIDTH; x++)
+        {
             uint8_t cellCount = 0;
             int dx;
-            for (dx = -1; dx <= 1; dx++) {
+            for (dx = -1; dx <= 1; dx++)
+            {
                 int dy;
-                for (dy = -1; dy <= 1; dy++) {
-                    if (cellCount > 3) break;
+                for (dy = -1; dy <= 1; dy++)
+                {
+                    if (cellCount > 3)
+                        break;
                     if ((dx == 0 && dy == 0) ||
-                            x + dx < 0 || x + dx >= WIDTH ||
-                            y + dy < 0 || y + dy >= HEIGHT) continue;
-                    if (*(*(cells + y + dy) + x + dx)) cellCount++;
+                        x + dx < 0 || x + dx >= WIDTH ||
+                        y + dy < 0 || y + dy >= HEIGHT)
+                        continue;
+                    if (*(*(cells + y + dy) + x + dx))
+                        cellCount++;
                 }
             }
             if (*(*(cells + y) + x) && cellCount == 2)
@@ -113,7 +132,8 @@ void nextStep() {
             else
                 *(line + x) = 0;
         }
-        if (y > 0) {
+        if (y > 0)
+        {
             memcpy(*(cells + y - 1), aboveLine, WIDTH);
         }
         memcpy(aboveLine, line, WIDTH);
@@ -125,11 +145,14 @@ void nextStep() {
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
-    if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS;  /* end the program, reporting success to the OS. */
+    if (event->type == SDL_EVENT_QUIT)
+    {
+        return SDL_APP_SUCCESS; /* end the program, reporting success to the OS. */
     }
-    else if (event->type == SDL_EVENT_KEY_DOWN) {
-        if (event->key.key == SDLK_ESCAPE) {
+    else if (event->type == SDL_EVENT_KEY_DOWN)
+    {
+        if (event->key.key == SDLK_ESCAPE)
+        {
             return SDL_APP_SUCCESS;
         }
         nextStep();
@@ -139,7 +162,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
-{   
+{
     displayCells();
 
     return SDL_APP_CONTINUE;
