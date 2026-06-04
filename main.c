@@ -10,9 +10,9 @@
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 
-#define WIDTH 10
-#define HEIGHT 10
-#define PIXEL_SIZE 16
+#define WIDTH 750
+#define HEIGHT 250
+#define PIXEL_SIZE 4
 
 static uint8_t cells[HEIGHT][WIDTH];
 
@@ -29,12 +29,18 @@ void showCells() {
 }
 
 void initCells() {
-    *(*(cells + 1) + 3) = 1;
+    /* *(*(cells + 1) + 3) = 1;
     *(*(cells + 2) + 4) = 1;
     *(*(cells + 3) + 4) = 1;
     *(*(cells + 3) + 3) = 1;
-    *(*(cells + 3) + 2) = 1;
-    showCells();
+    *(*(cells + 3) + 2) = 1; */
+    int y;
+    for (y = 0; y < HEIGHT; y++) {
+        int x;
+        for (x = 0; x < WIDTH; x++) {
+            *(*(cells + y) + x) = (rand() % 3 == 0);
+        }
+    }
 }
 
 /* This function runs once at startup. */
