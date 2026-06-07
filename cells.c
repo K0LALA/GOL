@@ -71,6 +71,21 @@ int isInBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
     return 0;
 }
 
+/// @brief Returns the next initialized chained list starting from the one whose index is startIndex
+/// @param bucket A pointer to the bucket
+/// @param startIndex A pointer to the index of the index to search from
+/// @return A pointer to the next chained list node if it exists, NULL otherwise
+ChainedListNode* getNextChainedList(Bucket *bucket, uint64_t *startIndex)
+{
+    int i = *startIndex;
+    while (i < BUCKET_SIZE && !IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
+    {
+        i++;
+    }
+    *startIndex = i;
+    return (i < BUCKET_SIZE ? &bucket->chainedLists[i] : NULL);
+}
+
 Bucket createBucket()
 {
     Bucket bucket = {{0}, {0}};

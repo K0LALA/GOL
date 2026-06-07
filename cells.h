@@ -5,9 +5,9 @@
 
 #define IS_BIT_PRESENT(bytes, bit) (!~(bytes | ~(1 << bit)))
 
-#define BUCKET_SIZE 4
+#define BUCKET_SIZE 65536
 
-#define BUCKET_FILLED_LIST_LENGTH 1                                 // ceil(BUCKET_SIZE / 16), as many bits as elements count in bucket
+#define BUCKET_FILLED_LIST_LENGTH 1596                              // ceil(BUCKET_SIZE / 16), as many bits as elements count in bucket
 #define BUCKET_FILLED_LIST_INDEX(index) ((int)(index / 16))         // Gives the index in the areFilled list given the index of the chained list
 #define BUCKET_FILLED_LIST_BIT_SHIFT(index) (15 - index % 16)            // Gives the bit shift to access the bit relative to index, the index of the chained list
 
@@ -33,6 +33,7 @@ struct Bucket {
 static CELL_COORDINATE_TYPE hashCoordinates(COORDINATE_TYPE x, COORDINATE_TYPE y);
 void addToBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y);
 int isInBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y);
+ChainedListNode* getNextChainedList(Bucket *bucket, uint64_t *startIndex);
 Bucket createBucket();
 static void freeChainedList(ChainedListNode* chainedListStart);
 void freeBucket(Bucket* bucket);

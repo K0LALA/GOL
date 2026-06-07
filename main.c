@@ -12,13 +12,22 @@
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 
-#define WIDTH 750
-#define HEIGHT 250
-#define PIXEL_SIZE 4
+static Bucket *bucket;
+static Bucket *bucketNext;
+
+// Cells that have the potential to change, either die or live
+static Bucket *potential;
+static Bucket *potentialNext;
+
+static char changed = 1;
+
+#define WIDTH 960
+#define HEIGHT 540
+#define PIXEL_SIZE 16
 
 static uint8_t cells[HEIGHT][WIDTH];
 
-void showCells()
+/*void showCells()
 {
     int y;
     for (y = 0; y < HEIGHT; y++)
@@ -31,16 +40,16 @@ void showCells()
         printf("\n");
     }
     printf("\n");
-}
+}*/
 
 void initCells()
 {
-    /* *(*(cells + 1) + 3) = 1;
-     *(*(cells + 2) + 4) = 1;
-     *(*(cells + 3) + 4) = 1;
-     *(*(cells + 3) + 3) = 1;
-     *(*(cells + 3) + 2) = 1; */
-    int y;
+    addToBucket(bucket, 3, 1);
+    addToBucket(bucket, 4, 2);
+    addToBucket(bucket, 4, 3);
+    addToBucket(bucket, 3, 3);
+    addToBucket(bucket, 2, 3);
+    /*int y;
     for (y = 0; y < HEIGHT; y++)
     {
         int x;
@@ -48,7 +57,7 @@ void initCells()
         {
             *(*(cells + y) + x) = (rand() % 3 == 0);
         }
-    }
+    }*/
 }
 
 /* This function runs once at startup. */
@@ -65,7 +74,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     }
 
     /* Create the window */
-    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", 800, 600, SDL_WINDOW_RESIZABLE, &window, &renderer))
+    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", 1280, 720, SDL_WINDOW_RESIZABLE, &window, &renderer))
     {
         SDL_Log("Couldn't create window and renderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
@@ -74,27 +83,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    initCells();
+    unsigned int t = -1;
 
-    Bucket bucket = createBucket();
+    bucket = (Bucket*)calloc(1, sizeof(Bucket));
+    bucketNext = (Bucket*)calloc(1, sizeof(Bucket));
+    potentialNext = (Bucket*)calloc(1, sizeof(Bucket));
     
-    addToBucket(&bucket, 1, 2);
-    addToBucket(&bucket, 3, 4);
-    addToBucket(&bucket, 9, 5);
-    addToBucket(&bucket, -6214, -6789);
-    addToBucket(&bucket, 6214, -6789);
-    printf("%d\n", isInBucket(&bucket, 1, 2));
-    printf("%d\n", isInBucket(&bucket, 3, 4));
-    printf("%d\n", isInBucket(&bucket, 9, 5));
-    printf("%d\n", isInBucket(&bucket, -6214, -6789));
-    printf("%d\n", isInBucket(&bucket, 6214, -6789));
-    printf("%d\n", isInBucket(&bucket, 3, 49));
-    addToBucket(&bucket, 3, 49);
-    printf("%d\n", isInBucket(&bucket, 3, 49));
-    addToBucket(&bucket, 3, 49);
-    printf("%d\n", isInBucket(&bucket, 3, 49));
-    
-    freeBucket(&bucket);
+    initCells();
 
     return SDL_APP_CONTINUE;
 }
@@ -104,19 +99,27 @@ void displayCells()
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    int y;
-    for (y = 0; y < HEIGHT; y++)
+
+    uint64_t chainedListIndex = -1;
+    ChainedListNode *currentCell = getNextChainedList(bucket, &chainedListIndex);
+    do
     {
-        int x;
-        for (x = 0; x < WIDTH; x++)
+        COORDINATE_TYPE x, y;
+        x = currentCell->coordinates&~(COORDINATE_TYPE)0;
+        y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
+        printf("%d;%d\n", x, y);
+
+        SDL_FRect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
+        SDL_RenderFillRect(renderer, &rect);
+
+        currentCell = currentCell->next;
+        if (currentCell == NULL)
         {
-            if (*(*(cells + y) + x))
-            {
-                SDL_FRect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
-                SDL_RenderFillRect(renderer, &rect);
-            }
+            chainedListIndex++;
+            currentCell = getNextChainedList(bucket, &chainedListIndex);
         }
-    }
+    } while (currentCell != NULL && (chainedListIndex < BUCKET_SIZE || currentCell->next != NULL));
+
     SDL_RenderPresent(renderer);
 }
 
@@ -164,6 +167,83 @@ void nextStep()
     free(line);
 }
 
+void NEWnextStep()
+{
+    // setActive = setActiveNext
+    bucket = bucketNext;
+    // setActiveNext.clear()
+    bucketNext = (Bucket*)calloc(1, sizeof(Bucket));
+    // setPotential = setPotentialNext
+    potential = potentialNext;
+    // setPotentialNext = setActive
+    potentialNext = bucket;
+
+    uint64_t chainedListIndex = -1;
+    ChainedListNode *currentCell = getNextChainedList(potential, &chainedListIndex);
+    do
+    {
+        COORDINATE_TYPE x, y;
+        x = currentCell->coordinates&~(COORDINATE_TYPE)0;
+        y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
+        printf("%d;%d\n", x, y);
+
+        char activeNeighbourCount = isInBucket(bucket, x - 1, y - 1) +
+                                    isInBucket(bucket, x - 1, y) +
+                                    isInBucket(bucket, x - 1, y + 1) +
+                                    isInBucket(bucket, x, y - 1) +
+                                    isInBucket(bucket, x, y + 1) +
+                                    isInBucket(bucket, x + 1, y - 1) +
+                                    isInBucket(bucket, x + 1, y) +
+                                    isInBucket(bucket, x + 1, y + 1);
+
+        if (isInBucket(bucket, x, y))
+        {
+            if (activeNeighbourCount == 2 || activeNeighbourCount == 3)
+            {
+                addToBucket(bucketNext, x, y);
+            }
+            else
+            {
+                int dy;
+                for (dy = -1; dy <= 1; dy++)
+                {
+                    int dx;
+                    for (dx = -1; dx <= 1; dx++)
+                    {
+                        addToBucket(potentialNext, x + dx, y + dy);
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (activeNeighbourCount == 3)
+            {
+                addToBucket(potentialNext, x, y);
+
+                int dy;
+                for (dy = -1; dy <= 1; dy++)
+                {
+                    int dx;
+                    for (dx = -1; dx <= 1; dx++)
+                    {
+                        addToBucket(potentialNext, x + dx, y + dy);
+                    }
+                }
+            }
+        }
+
+        currentCell = currentCell->next;
+        if (currentCell == NULL)
+        {
+            chainedListIndex++;
+            currentCell = getNextChainedList(potential, &chainedListIndex);
+        }
+    } while (currentCell != NULL && (chainedListIndex < BUCKET_SIZE || currentCell->next != NULL));
+    
+    free(potential);
+}
+
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
@@ -178,6 +258,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             return SDL_APP_SUCCESS;
         }
         nextStep();
+        changed = 1;
     }
     return SDL_APP_CONTINUE;
 }
@@ -185,7 +266,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    displayCells();
+    if (changed)
+    {
+        displayCells();
+        changed = 0;
+    }
 
     return SDL_APP_CONTINUE;
 }
@@ -193,4 +278,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
+    freeBucket(bucket);
+    free(bucket);
+    freeBucket(bucketNext);
+    free(bucketNext);
+    freeBucket(potentialNext);
+    free(potentialNext);
 }
