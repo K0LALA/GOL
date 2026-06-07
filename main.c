@@ -85,9 +85,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     unsigned int t = -1;
 
-    bucket = (Bucket*)calloc(1, sizeof(Bucket));
-    bucketNext = (Bucket*)calloc(1, sizeof(Bucket));
-    potentialNext = (Bucket*)calloc(1, sizeof(Bucket));
+    bucket = createBucket();
+    bucketNext = createBucket();
+    potentialNext = createBucket();
     
     initCells();
 
@@ -100,25 +100,26 @@ void displayCells()
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    uint64_t chainedListIndex = -1;
-    ChainedListNode *currentCell = getNextChainedList(bucket, &chainedListIndex);
-    do
+    int i;
+    for (i = 0; i < BUCKET_SIZE; i++)
     {
-        COORDINATE_TYPE x, y;
-        x = currentCell->coordinates&~(COORDINATE_TYPE)0;
-        y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
-        printf("%d;%d\n", x, y);
-
-        SDL_FRect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
-        SDL_RenderFillRect(renderer, &rect);
-
-        currentCell = currentCell->next;
-        if (currentCell == NULL)
+        if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
         {
-            chainedListIndex++;
-            currentCell = getNextChainedList(bucket, &chainedListIndex);
+            continue;
         }
-    } while (currentCell != NULL && (chainedListIndex < BUCKET_SIZE || currentCell->next != NULL));
+        ChainedListNode *currentCell = &bucket->chainedLists[i];
+        do
+        {
+            COORDINATE_TYPE x, y;
+            x = currentCell->coordinates&~(COORDINATE_TYPE)0;
+            y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
+
+            SDL_FRect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
+            SDL_RenderFillRect(renderer, &rect);
+
+            currentCell = currentCell->next;
+        } while (currentCell != NULL);
+    }
 
     SDL_RenderPresent(renderer);
 }
@@ -172,75 +173,77 @@ void NEWnextStep()
     // setActive = setActiveNext
     bucket = bucketNext;
     // setActiveNext.clear()
-    bucketNext = (Bucket*)calloc(1, sizeof(Bucket));
+    bucketNext = createBucket();
     // setPotential = setPotentialNext
     potential = potentialNext;
     // setPotentialNext = setActive
     potentialNext = bucket;
 
-    uint64_t chainedListIndex = -1;
-    ChainedListNode *currentCell = getNextChainedList(potential, &chainedListIndex);
-    do
+    int i;
+    for (i = 0; i < BUCKET_SIZE; i++)
     {
-        COORDINATE_TYPE x, y;
-        x = currentCell->coordinates&~(COORDINATE_TYPE)0;
-        y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
-        printf("%d;%d\n", x, y);
-
-        char activeNeighbourCount = isInBucket(bucket, x - 1, y - 1) +
-                                    isInBucket(bucket, x - 1, y) +
-                                    isInBucket(bucket, x - 1, y + 1) +
-                                    isInBucket(bucket, x, y - 1) +
-                                    isInBucket(bucket, x, y + 1) +
-                                    isInBucket(bucket, x + 1, y - 1) +
-                                    isInBucket(bucket, x + 1, y) +
-                                    isInBucket(bucket, x + 1, y + 1);
-
-        if (isInBucket(bucket, x, y))
+        if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
         {
-            if (activeNeighbourCount == 2 || activeNeighbourCount == 3)
+            continue;
+        }
+        ChainedListNode *currentCell = &bucket->chainedLists[i];
+        do
+        {
+            COORDINATE_TYPE x, y;
+            x = currentCell->coordinates&~(COORDINATE_TYPE)0;
+            y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
+
+            char activeNeighbourCount = isInBucket(bucket, x - 1, y - 1) +
+                                        isInBucket(bucket, x - 1, y) +
+                                        isInBucket(bucket, x - 1, y + 1) +
+                                        isInBucket(bucket, x, y - 1) +
+                                        isInBucket(bucket, x, y + 1) +
+                                        isInBucket(bucket, x + 1, y - 1) +
+                                        isInBucket(bucket, x + 1, y) +
+                                        isInBucket(bucket, x + 1, y + 1);
+
+            if (isInBucket(bucket, x, y))
             {
-                addToBucket(bucketNext, x, y);
+                if (activeNeighbourCount == 2 || activeNeighbourCount == 3)
+                {
+                    addToBucket(bucketNext, x, y);
+                }
+                else
+                {
+                    int dy;
+                    for (dy = -1; dy <= 1; dy++)
+                    {
+                        int dx;
+                        for (dx = -1; dx <= 1; dx++)
+                        {
+                            addToBucket(potentialNext, x + dx, y + dy);
+                        }
+                    }
+                }
             }
             else
             {
-                int dy;
-                for (dy = -1; dy <= 1; dy++)
+                if (activeNeighbourCount == 3)
                 {
-                    int dx;
-                    for (dx = -1; dx <= 1; dx++)
+                    addToBucket(bucketNext, x, y);
+
+                    int dy;
+                    for (dy = -1; dy <= 1; dy++)
                     {
-                        addToBucket(potentialNext, x + dx, y + dy);
+                        int dx;
+                        for (dx = -1; dx <= 1; dx++)
+                        {
+                            addToBucket(potentialNext, x + dx, y + dy);
+                        }
                     }
                 }
             }
-        }
-        else
-        {
-            if (activeNeighbourCount == 3)
-            {
-                addToBucket(potentialNext, x, y);
 
-                int dy;
-                for (dy = -1; dy <= 1; dy++)
-                {
-                    int dx;
-                    for (dx = -1; dx <= 1; dx++)
-                    {
-                        addToBucket(potentialNext, x + dx, y + dy);
-                    }
-                }
-            }
-        }
-
-        currentCell = currentCell->next;
-        if (currentCell == NULL)
-        {
-            chainedListIndex++;
-            currentCell = getNextChainedList(potential, &chainedListIndex);
-        }
-    } while (currentCell != NULL && (chainedListIndex < BUCKET_SIZE || currentCell->next != NULL));
+            currentCell = currentCell->next;
+        } while (currentCell != NULL);
+    }
     
+    freeBucket(potential);
     free(potential);
 }
 
@@ -257,7 +260,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         {
             return SDL_APP_SUCCESS;
         }
-        nextStep();
+        NEWnextStep();
         changed = 1;
     }
     return SDL_APP_CONTINUE;
@@ -282,6 +285,4 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     free(bucket);
     freeBucket(bucketNext);
     free(bucketNext);
-    freeBucket(potentialNext);
-    free(potentialNext);
 }

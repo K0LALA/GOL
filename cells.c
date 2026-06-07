@@ -86,10 +86,18 @@ ChainedListNode* getNextChainedList(Bucket *bucket, uint64_t *startIndex)
     return (i < BUCKET_SIZE ? &bucket->chainedLists[i] : NULL);
 }
 
-Bucket createBucket()
+Bucket* createBucket()
 {
-    Bucket bucket = {{0}, {0}};
+    Bucket* bucket = (Bucket*)malloc(sizeof(Bucket));
+
+    int i;
+    for (i = 0; i < BUCKET_FILLED_LIST_LENGTH; i++)
+    {
+        bucket->areFilled[i] = 0;
+    }
+
     return bucket;
+
 }
 
 static void freeChainedList(ChainedListNode* chainedListStart)
@@ -106,6 +114,8 @@ void freeBucket(Bucket* bucket)
     int i;
     for (i = 0; i < BUCKET_SIZE; i++)
     {
+        if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
+            continue;
         currentChainedList = bucket->chainedLists[i];
         // We don't want to free the current element since it is on the stack and not the heap
         freeChainedList(currentChainedList.next);
