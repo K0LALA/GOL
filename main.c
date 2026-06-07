@@ -21,9 +21,9 @@ static Bucket *potentialNext;
 
 static char changed = 1;
 
-#define WIDTH 960
-#define HEIGHT 540
-#define PIXEL_SIZE 16
+#define WIDTH 1366
+#define HEIGHT 768
+#define PIXEL_SIZE 1
 
 static uint8_t cells[HEIGHT][WIDTH];
 
@@ -42,22 +42,41 @@ static uint8_t cells[HEIGHT][WIDTH];
     printf("\n");
 }*/
 
+void addCell(int16_t x, int16_t y)
+{
+    addToBucket(bucket, x, y);
+    addToBucket(bucketNext, x, y);
+
+    int dy;
+    for (dy = -1; dy <= 1; dy++)
+    {
+        int dx;
+        for (dx = -1; dx <= 1; dx++)
+        {
+            addToBucket(potentialNext, x + dx, y + dy);
+        }
+    }
+}
+
 void initCells()
 {
-    addToBucket(bucket, 3, 1);
-    addToBucket(bucket, 4, 2);
-    addToBucket(bucket, 4, 3);
-    addToBucket(bucket, 3, 3);
-    addToBucket(bucket, 2, 3);
-    /*int y;
+    /* addCell(3, 1);
+    addCell(4, 2);
+    addCell(4, 3);
+    addCell(3, 3);
+    addCell(2, 3); */
+    int y;
     for (y = 0; y < HEIGHT; y++)
     {
         int x;
         for (x = 0; x < WIDTH; x++)
         {
-            *(*(cells + y) + x) = (rand() % 3 == 0);
+            if(!(rand() % 13))
+            {
+                addCell(x, y);
+            }
         }
-    }*/
+    }
 }
 
 /* This function runs once at startup. */
@@ -74,7 +93,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     }
 
     /* Create the window */
-    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", 1280, 720, SDL_WINDOW_RESIZABLE, &window, &renderer))
+    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN, &window, &renderer))
     {
         SDL_Log("Couldn't create window and renderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
@@ -177,7 +196,7 @@ void NEWnextStep()
     // setPotential = setPotentialNext
     potential = potentialNext;
     // setPotentialNext = setActive
-    potentialNext = bucket;
+    deepCopy(potentialNext, bucket);
 
     int i;
     for (i = 0; i < BUCKET_SIZE; i++)
@@ -242,9 +261,6 @@ void NEWnextStep()
             currentCell = currentCell->next;
         } while (currentCell != NULL);
     }
-    
-    freeBucket(potential);
-    free(potential);
 }
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
@@ -285,4 +301,6 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     free(bucket);
     freeBucket(bucketNext);
     free(bucketNext);
+    freeBucket(potentialNext);
+    free(potentialNext);
 }

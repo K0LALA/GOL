@@ -35,6 +35,7 @@ void addToBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y);
 int isInBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y);
 ChainedListNode* getNextChainedList(Bucket *bucket, uint64_t *startIndex);
 Bucket* createBucket();
+void deepCopy(Bucket* dst, Bucket* src);
 static void freeChainedList(ChainedListNode* chainedListStart);
 void freeBucket(Bucket* bucket);
 

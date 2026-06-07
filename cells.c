@@ -100,6 +100,43 @@ Bucket* createBucket()
 
 }
 
+void deepCopy(Bucket *dst, Bucket *src)
+{
+    int i;
+    for (i = 0; i < BUCKET_FILLED_LIST_LENGTH; i++)
+    {
+        dst->areFilled[i] = src->areFilled[i];
+    }
+    
+    for (i = 0; i < BUCKET_SIZE; i++)
+    {
+        if (!IS_BIT_PRESENT(src->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
+        {
+            dst->chainedLists[i].coordinates = 0;
+            dst->chainedLists[i].next = NULL;
+        }
+        else
+        {
+            // Free the current elements
+            freeChainedList(dst->chainedLists[i].next);
+
+            // Assign new ones
+            ChainedListNode *currentSrcCell = &src->chainedLists[i];
+            ChainedListNode *lastDstCell = &dst->chainedLists[i];
+            lastDstCell->coordinates = currentSrcCell->coordinates;
+            ChainedListNode *currentDstCell;
+            while (currentSrcCell != NULL) {
+                currentDstCell = (ChainedListNode*)calloc(1, sizeof(ChainedListNode));
+                currentDstCell->coordinates = currentSrcCell->coordinates;
+                lastDstCell->next = currentDstCell;
+
+                lastDstCell = currentDstCell;
+                currentSrcCell = currentSrcCell->next;
+            }
+        }
+    }
+}
+
 static void freeChainedList(ChainedListNode* chainedListStart)
 {
     if (chainedListStart == NULL) return;
