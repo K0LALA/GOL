@@ -182,11 +182,11 @@ void NEWnextStep()
     int i;
     for (i = 0; i < BUCKET_SIZE; i++)
     {
-        if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
+        if (!IS_BIT_PRESENT(potential->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
         {
             continue;
         }
-        ChainedListNode *currentCell = &bucket->chainedLists[i];
+        ChainedListNode *currentCell = &potential->chainedLists[i];
         do
         {
             COORDINATE_TYPE x, y;
