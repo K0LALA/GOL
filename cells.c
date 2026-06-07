@@ -7,69 +7,77 @@
 /// @param x The x-coordinate of the cell
 /// @param y The y-coordinate of the cell
 /// @return The hash
-CELL_COORDINATE_TYPE hashCoordinates(COORDINATE_TYPE x, COORDINATE_TYPE y)
+static CELL_COORDINATE_TYPE hashCoordinates(COORDINATE_TYPE x, COORDINATE_TYPE y)
 {
     return (y << CELL_COORDINATE_Y_BIT_SHIFT) | x;
 }
 
-// TODO: Add a list for each bucket, saying if the bucket is initialized or not, used in order to not alloc / free the same segments twice for the first chained lists elements
-
 /// @brief Adds the element of coordinates (x;y) to the chained lists of the bucket corresponding to the coordinates' hash
-/// @param bucket The address pointing to the start of the bucket
+/// @param bucket The address pointing to the bucket
 /// @param x The x-coordinate of the cell
 /// @param y The y-coordinate of the cell
-void addToBucket(ChainedListNode *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
+void addToBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
 {
     CELL_COORDINATE_TYPE hash = hashCoordinates(x, y);
-    unsigned int addressOffset = hash % BUCKET_SIZE;
-    printf("Hash created");
-    ChainedListNode currentElement = *(bucket + addressOffset);
-    while (currentElement.next != NULL)
+    unsigned int chainedListIndex = hash % BUCKET_SIZE;
+    ChainedListNode *currentElement = &bucket->chainedLists[chainedListIndex];
+    while (currentElement->next != NULL && currentElement->coordinates != hash)
     {
-        currentElement = *currentElement.next;
+        currentElement = currentElement->next;
     }
-    printf("Found last item");
 
+    if (currentElement->coordinates == hash)
+    {
+        return;
+    }
+    
+    if (IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(chainedListIndex)], BUCKET_FILLED_LIST_BIT_SHIFT(chainedListIndex)))
+    {
+        // Chained list has already been initialized
+        ChainedListNode *newItem = (ChainedListNode *)calloc(1, sizeof(ChainedListNode));
+        newItem->coordinates = hash;
+        currentElement->next = newItem;
+    }
+    else
+    {
+        // Chained list has not been initiliazed
+        bucket->areFilled[BUCKET_FILLED_LIST_INDEX(chainedListIndex)] |= 1 << (BUCKET_FILLED_LIST_BIT_SHIFT(chainedListIndex));
+        currentElement->coordinates = hash;
+    }
     // currentElement now holds the last element of the chained list
-    ChainedListNode *newItem = (ChainedListNode *)calloc(1, sizeof(ChainedListNode));
-    newItem->coordinates = hash;
     // No need to set the next of newItem to NULL since it was initialised to 0, corresponding to NULL
-    currentElement.next = newItem;
-    printf("Initialized newItem");
 }
 
 /// @brief Verify if the element of coordinates (x;y) is in the bucket or not
-/// @param bucket The address pointing to the start of the bucket
+/// @param bucket The address pointing to the bucket
 /// @param x The x-coordinate of the cell
 /// @param y The y-coordinate of the cell
 /// @return 1 if the cell is in the bucket, 0 otherwise
-int isInBucket(ChainedListNode *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
+int isInBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
 {
     CELL_COORDINATE_TYPE hash = hashCoordinates(x, y);
-    unsigned int addressOffset = hash % BUCKET_SIZE;
-    printf("Hash created");
-    ChainedListNode currentElement = *(bucket + addressOffset);
-    while (currentElement.next != NULL && currentElement.coordinates != hash)
+    unsigned int chainedListIndex = hash % BUCKET_SIZE;
+    if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(chainedListIndex)], BUCKET_FILLED_LIST_BIT_SHIFT(chainedListIndex))) return 0;
+    ChainedListNode *currentElement = &bucket->chainedLists[chainedListIndex];
+    while (currentElement->next != NULL && currentElement->coordinates != hash)
     {
-        currentElement = *currentElement.next;
+        currentElement = currentElement->next;
     }
 
-    printf("Found element or last");
-
-    if (currentElement.coordinates == hash)
+    if (currentElement->coordinates == hash)
     {
         return 1;
     }
     return 0;
 }
 
-ChainedListNode* allocateBucket()
+Bucket createBucket()
 {
-    printf("Allocating bucket");
-    return (ChainedListNode*)calloc(BUCKET_SIZE, sizeof(ChainedListNode*));
+    Bucket bucket = {{0}, {0}};
+    return bucket;
 }
 
-void freeChainedList(ChainedListNode* chainedListStart)
+static void freeChainedList(ChainedListNode* chainedListStart)
 {
     if (chainedListStart == NULL) return;
     ChainedListNode *next = chainedListStart->next;
@@ -77,13 +85,14 @@ void freeChainedList(ChainedListNode* chainedListStart)
     freeChainedList(next);
 }
 
-void freeBucket(ChainedListNode* bucket)
+void freeBucket(Bucket* bucket)
 {
-    ChainedListNode *currentChainedList = bucket;
+    ChainedListNode currentChainedList;
     int i;
     for (i = 0; i < BUCKET_SIZE; i++)
     {
-        freeChainedList(currentChainedList++);
+        currentChainedList = bucket->chainedLists[i];
+        // We don't want to free the current element since it is on the stack and not the heap
+        freeChainedList(currentChainedList.next);
     }
-    free(bucket);
 }

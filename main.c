@@ -76,21 +76,25 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     initCells();
 
-    ChainedListNode *bucket = allocateBucket();
-    /*
-    addToBucket(bucket, 1, 2);
-    addToBucket(bucket, 3, 4);
-    addToBucket(bucket, 9, 5);
-    addToBucket(bucket, -6214, -6789);
-    addToBucket(bucket, 6214, -6789);
-    printf("%d\n", isInBucket(bucket, 1, 2));
-    printf("%d\n", isInBucket(bucket, 3, 4));
-    printf("%d\n", isInBucket(bucket, 9, 5));
-    printf("%d\n", isInBucket(bucket, -6214, -6789));
-    printf("%d\n", isInBucket(bucket, 6214, -6789));
-    printf("%d\n", isInBucket(bucket, 3, 49));
-    */
-    freeBucket(bucket);
+    Bucket bucket = createBucket();
+    
+    addToBucket(&bucket, 1, 2);
+    addToBucket(&bucket, 3, 4);
+    addToBucket(&bucket, 9, 5);
+    addToBucket(&bucket, -6214, -6789);
+    addToBucket(&bucket, 6214, -6789);
+    printf("%d\n", isInBucket(&bucket, 1, 2));
+    printf("%d\n", isInBucket(&bucket, 3, 4));
+    printf("%d\n", isInBucket(&bucket, 9, 5));
+    printf("%d\n", isInBucket(&bucket, -6214, -6789));
+    printf("%d\n", isInBucket(&bucket, 6214, -6789));
+    printf("%d\n", isInBucket(&bucket, 3, 49));
+    addToBucket(&bucket, 3, 49);
+    printf("%d\n", isInBucket(&bucket, 3, 49));
+    addToBucket(&bucket, 3, 49);
+    printf("%d\n", isInBucket(&bucket, 3, 49));
+    
+    freeBucket(&bucket);
 
     return SDL_APP_CONTINUE;
 }
