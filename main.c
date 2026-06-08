@@ -21,7 +21,7 @@ static Bucket *potentialNext;
 
 static char changed = 1;
 
-#define PIXEL_SIZE 2
+#define PIXEL_SIZE 4
 
 void addCell(int16_t x, int16_t y)
 {
@@ -60,6 +60,78 @@ void initCells()
     }
 }
 
+void initPattern(char* fileName)
+{
+    FILE* patternFile = fopen(fileName, "r");
+    if (patternFile == NULL)
+    {
+        printf("Couldn't read file.\n");
+        return;
+    }
+
+    char character;
+    char finishLine = 0;
+    unsigned int run_count = 0;
+    unsigned int x = 0;
+    unsigned int y = 0;
+    while (character != EOF)
+    {
+        character = fgetc(patternFile);
+        if (finishLine)
+        {
+            if (character == '\n')
+            {
+                finishLine = 0;
+            }
+            continue;
+        }
+        if (character == '#' || character == 'x')
+        {
+            finishLine = 1;
+            continue;
+        }
+        else if (character == '\n') 
+        {
+            continue;
+        }
+
+        else if ((int)'0' <= character && character <= (int)'9')
+        {
+            run_count *= 10;
+            run_count += character - '0';
+        }
+
+        else if (character == 'b')
+        {
+            x += run_count ? run_count : 1;
+            run_count = 0;
+        }
+
+        else if (character == 'o')
+        {
+            run_count = run_count ? run_count : 1;
+            int dx;
+            for (dx = 0; dx < run_count; dx++)
+            {
+                addCell(20 + x + dx, 20 + y);
+            }
+            x += run_count;
+        }
+
+        else if (character == '$')
+        {
+            y += 1;
+            x=0;
+            run_count = 0;
+        }
+
+        else if (character == '!')
+        {
+            return;
+        }
+    }
+}
+
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
@@ -87,7 +159,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     bucketNext = createBucket();
     potentialNext = createBucket();
     
-    initCells();
+    if (argc == 2)
+    {
+        initPattern(argv[1]);
+    }
+    else
+    {
+        initCells();
+    }
 
     return SDL_APP_CONTINUE;
 }
