@@ -88,13 +88,7 @@ ChainedListNode* getNextChainedList(Bucket *bucket, uint64_t *startIndex)
 
 Bucket* createBucket()
 {
-    Bucket* bucket = (Bucket*)malloc(sizeof(Bucket));
-
-    int i;
-    for (i = 0; i < BUCKET_FILLED_LIST_LENGTH; i++)
-    {
-        bucket->areFilled[i] = 0;
-    }
+    Bucket* bucket = (Bucket*)calloc(1, sizeof(Bucket));
 
     return bucket;
 

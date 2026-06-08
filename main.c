@@ -21,26 +21,7 @@ static Bucket *potentialNext;
 
 static char changed = 1;
 
-#define WIDTH 1366
-#define HEIGHT 768
-#define PIXEL_SIZE 1
-
-static uint8_t cells[HEIGHT][WIDTH];
-
-/*void showCells()
-{
-    int y;
-    for (y = 0; y < HEIGHT; y++)
-    {
-        int x;
-        for (x = 0; x < WIDTH; x++)
-        {
-            printf("%d ", *(*(cells + y) + x));
-        }
-        printf("\n");
-    }
-    printf("\n");
-}*/
+#define PIXEL_SIZE 2
 
 void addCell(int16_t x, int16_t y)
 {
@@ -60,16 +41,16 @@ void addCell(int16_t x, int16_t y)
 
 void initCells()
 {
-    /* addCell(3, 1);
+    /*addCell(3, 1);
     addCell(4, 2);
     addCell(4, 3);
     addCell(3, 3);
-    addCell(2, 3); */
+    addCell(2, 3);*/
     int y;
-    for (y = 0; y < HEIGHT; y++)
+    for (y = 0; y < 500; y++)
     {
         int x;
-        for (x = 0; x < WIDTH; x++)
+        for (x = 0; x < 500; x++)
         {
             if(!(rand() % 13))
             {
@@ -93,7 +74,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     }
 
     /* Create the window */
-    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN, &window, &renderer))
+    if (!SDL_CreateWindowAndRenderer("SDL3 Draw", 800, 600, SDL_WINDOW_RESIZABLE, &window, &renderer))
     {
         SDL_Log("Couldn't create window and renderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;
@@ -101,8 +82,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-
-    unsigned int t = -1;
 
     bucket = createBucket();
     bucketNext = createBucket();
@@ -143,50 +122,6 @@ void displayCells()
     SDL_RenderPresent(renderer);
 }
 
-void nextStep()
-{
-    uint8_t *aboveLine = (uint8_t *)malloc(WIDTH);
-    uint8_t *line = (uint8_t *)malloc(WIDTH);
-    int y;
-    for (y = 0; y < HEIGHT; y++)
-    {
-        int x;
-        for (x = 0; x < WIDTH; x++)
-        {
-            uint8_t cellCount = 0;
-            int dx;
-            for (dx = -1; dx <= 1; dx++)
-            {
-                int dy;
-                for (dy = -1; dy <= 1; dy++)
-                {
-                    if (cellCount > 3)
-                        break;
-                    if ((dx == 0 && dy == 0) ||
-                        x + dx < 0 || x + dx >= WIDTH ||
-                        y + dy < 0 || y + dy >= HEIGHT)
-                        continue;
-                    if (*(*(cells + y + dy) + x + dx))
-                        cellCount++;
-                }
-            }
-            if (*(*(cells + y) + x) && cellCount == 2)
-                *(line + x) = 1;
-            else if (cellCount == 3)
-                *(line + x) = 1;
-            else
-                *(line + x) = 0;
-        }
-        if (y > 0)
-        {
-            memcpy(*(cells + y - 1), aboveLine, WIDTH);
-        }
-        memcpy(aboveLine, line, WIDTH);
-    }
-    free(aboveLine);
-    free(line);
-}
-
 void NEWnextStep()
 {
     // setActive = setActiveNext
@@ -195,6 +130,7 @@ void NEWnextStep()
     bucketNext = createBucket();
     // setPotential = setPotentialNext
     potential = potentialNext;
+    potentialNext = createBucket();
     // setPotentialNext = setActive
     deepCopy(potentialNext, bucket);
 

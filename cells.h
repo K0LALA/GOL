@@ -5,11 +5,11 @@
 
 #define IS_BIT_PRESENT(bytes, bit) (!~(bytes | ~(1 << bit)))
 
-#define BUCKET_SIZE 65536
+#define BUCKET_SIZE 2048
 
-#define BUCKET_FILLED_LIST_LENGTH 4096                              // ceil(BUCKET_SIZE / 16), as many bits as elements count in bucket
+#define BUCKET_FILLED_LIST_LENGTH 128                               // ceil(BUCKET_SIZE / 16), as many bits as elements count in bucket
 #define BUCKET_FILLED_LIST_INDEX(index) ((int)(index / 16))         // Gives the index in the areFilled list given the index of the chained list
-#define BUCKET_FILLED_LIST_BIT_SHIFT(index) (15 - index % 16)            // Gives the bit shift to access the bit relative to index, the index of the chained list
+#define BUCKET_FILLED_LIST_BIT_SHIFT(index) (15 - index % 16)       // Gives the bit shift to access the bit relative to index, the index of the chained list
 
 #define COORDINATE_TYPE int16_t                                     // Can be negative, describes either x- or y-coordinate
 #define CELL_COORDINATE_TYPE uint32_t                               // Cannot be negative, describes x and y coordinates at once
