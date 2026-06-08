@@ -21,12 +21,12 @@ void addToBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
     CELL_COORDINATE_TYPE hash = hashCoordinates(x, y);
     unsigned int chainedListIndex = hash % BUCKET_SIZE;
     ChainedListNode *currentElement = &bucket->chainedLists[chainedListIndex];
-    while (currentElement->next != NULL && currentElement->coordinates != hash)
+    while (currentElement->next != NULL && (currentElement->x != x || currentElement->y != y))
     {
         currentElement = currentElement->next;
     }
 
-    if (currentElement->coordinates == hash)
+    if (currentElement->x == x && currentElement->y == y)
     {
         return;
     }
@@ -35,14 +35,16 @@ void addToBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
     {
         // Chained list has already been initialized
         ChainedListNode *newItem = (ChainedListNode *)calloc(1, sizeof(ChainedListNode));
-        newItem->coordinates = hash;
+        newItem->x = x;
+        newItem->y = y;
         currentElement->next = newItem;
     }
     else
     {
         // Chained list has not been initiliazed
         bucket->areFilled[BUCKET_FILLED_LIST_INDEX(chainedListIndex)] |= 1 << (BUCKET_FILLED_LIST_BIT_SHIFT(chainedListIndex));
-        currentElement->coordinates = hash;
+        currentElement->x = x;
+        currentElement->y = y;
     }
     // currentElement now holds the last element of the chained list
     // No need to set the next of newItem to NULL since it was initialised to 0, corresponding to NULL
@@ -59,12 +61,12 @@ int isInBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
     unsigned int chainedListIndex = hash % BUCKET_SIZE;
     if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(chainedListIndex)], BUCKET_FILLED_LIST_BIT_SHIFT(chainedListIndex))) return 0;
     ChainedListNode *currentElement = &bucket->chainedLists[chainedListIndex];
-    while (currentElement->next != NULL && currentElement->coordinates != hash)
+    while (currentElement->next != NULL && (currentElement->x != x || currentElement->y != y))
     {
         currentElement = currentElement->next;
     }
 
-    if (currentElement->coordinates == hash)
+    if (currentElement->x == x && currentElement->y == y)
     {
         return 1;
     }
@@ -106,7 +108,8 @@ void deepCopy(Bucket *dst, Bucket *src)
     {
         if (!IS_BIT_PRESENT(src->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
         {
-            dst->chainedLists[i].coordinates = 0;
+            dst->chainedLists[i].x = 0;
+            dst->chainedLists[i].y = 0;
             dst->chainedLists[i].next = NULL;
         }
         else
@@ -117,11 +120,13 @@ void deepCopy(Bucket *dst, Bucket *src)
             // Assign new ones
             ChainedListNode *currentSrcCell = &src->chainedLists[i];
             ChainedListNode *lastDstCell = &dst->chainedLists[i];
-            lastDstCell->coordinates = currentSrcCell->coordinates;
+            lastDstCell->x = currentSrcCell->x;
+            lastDstCell->y = currentSrcCell->y;
             ChainedListNode *currentDstCell;
             while (currentSrcCell != NULL) {
                 currentDstCell = (ChainedListNode*)calloc(1, sizeof(ChainedListNode));
-                currentDstCell->coordinates = currentSrcCell->coordinates;
+                currentDstCell->x = currentSrcCell->x;
+                currentDstCell->y = currentSrcCell->y;
                 lastDstCell->next = currentDstCell;
 
                 lastDstCell = currentDstCell;

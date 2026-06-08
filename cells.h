@@ -20,7 +20,8 @@
 typedef struct ChainedListNode ChainedListNode;
 struct ChainedListNode
 {
-    CELL_COORDINATE_TYPE coordinates;               // y-coordinate occupies the most significant bits, x-coordinate occupies the least significant bits
+    COORDINATE_TYPE x;
+    COORDINATE_TYPE y;
     ChainedListNode *next;                          
 };
 

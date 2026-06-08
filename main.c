@@ -109,8 +109,8 @@ void displayCells()
         do
         {
             COORDINATE_TYPE x, y;
-            x = currentCell->coordinates&~(COORDINATE_TYPE)0;
-            y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
+            x = currentCell->x;
+            y = currentCell->y;
 
             SDL_FRect rect = {x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE};
             SDL_RenderFillRect(renderer, &rect);
@@ -145,8 +145,8 @@ void NEWnextStep()
         do
         {
             COORDINATE_TYPE x, y;
-            x = currentCell->coordinates&~(COORDINATE_TYPE)0;
-            y = currentCell->coordinates>>(CELL_COORDINATE_Y_BIT_SHIFT);
+            x = currentCell->x;
+            y = currentCell->y;
 
             char activeNeighbourCount = isInBucket(bucket, x - 1, y - 1) +
                                         isInBucket(bucket, x - 1, y) +
