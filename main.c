@@ -19,9 +19,11 @@ static Bucket *bucketNext;
 static Bucket *potential;
 static Bucket *potentialNext;
 
-static char changed = 1;
+static char stepping = 0;
 
-#define PIXEL_SIZE 4
+static unsigned long long iterationCount = 0;
+
+#define PIXEL_SIZE 1
 
 void addCell(int16_t x, int16_t y)
 {
@@ -41,11 +43,6 @@ void addCell(int16_t x, int16_t y)
 
 void initCells()
 {
-    /*addCell(3, 1);
-    addCell(4, 2);
-    addCell(4, 3);
-    addCell(3, 3);
-    addCell(2, 3);*/
     int y;
     for (y = 0; y < 500; y++)
     {
@@ -60,7 +57,7 @@ void initCells()
     }
 }
 
-void initPattern(char* fileName)
+void initPattern(char* fileName, int offsetX, int offsetY)
 {
     FILE* patternFile = fopen(fileName, "r");
     if (patternFile == NULL)
@@ -83,53 +80,51 @@ void initPattern(char* fileName)
             {
                 finishLine = 0;
             }
-            continue;
         }
-        if (character == '#' || character == 'x')
+        // Comment
+        else if (character == '#')
         {
             finishLine = 1;
-            continue;
         }
-        else if (character == '\n') 
-        {
-            continue;
-        }
-
+        // Cell count
         else if ((int)'0' <= character && character <= (int)'9')
         {
             run_count *= 10;
             run_count += character - '0';
         }
-
+        // Dead cell
         else if (character == 'b')
         {
             x += run_count ? run_count : 1;
             run_count = 0;
         }
-
+        // Alive cell
         else if (character == 'o')
         {
             run_count = run_count ? run_count : 1;
             int dx;
             for (dx = 0; dx < run_count; dx++)
             {
-                addCell(20 + x + dx, 20 + y);
+                addCell(offsetX + x + dx, offsetY + y);
             }
             x += run_count;
-        }
-
-        else if (character == '$')
-        {
-            y += 1;
-            x=0;
             run_count = 0;
         }
-
+        // New line
+        else if (character == '$')
+        {
+            x = 0;
+            y += run_count ? run_count : 1;
+            run_count = 0;
+        }
+        // End of pattern
         else if (character == '!')
         {
-            return;
+            fseek(patternFile, 0, SEEK_END);
+            break;
         }
     }
+    fclose(patternFile);
 }
 
 /* This function runs once at startup. */
@@ -159,14 +154,21 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     bucketNext = createBucket();
     potentialNext = createBucket();
     
-    if (argc == 2)
+
+    if (argc == 4)
     {
-        initPattern(argv[1]);
+        initPattern(argv[1], atoi(argv[2]), atoi(argv[3]));
+    }
+    else if (argc == 2)
+    {
+        initPattern(argv[1], 0, 0);
     }
     else
     {
         initCells();
     }
+
+    displayCells();
 
     return SDL_APP_CONTINUE;
 }
@@ -201,8 +203,9 @@ void displayCells()
     SDL_RenderPresent(renderer);
 }
 
-void NEWnextStep()
+void nextStep()
 {
+    iterationCount++;
     // setActive = setActiveNext
     bucket = bucketNext;
     // setActiveNext.clear()
@@ -291,8 +294,30 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         {
             return SDL_APP_SUCCESS;
         }
-        NEWnextStep();
-        changed = 1;
+        switch (event->key.key)
+        {
+        case SDLK_ESCAPE:
+            return SDL_APP_SUCCESS;
+
+        case SDLK_SPACE:
+            stepping = !stepping;
+            break;
+
+        case SDLK_S:
+            if (!stepping)
+            {
+                nextStep();
+                displayCells();
+            }
+            break;
+        
+        default:
+            break;
+        }
+    }
+    else if (event->type == SDL_EVENT_WINDOW_RESIZED)
+    {
+        displayCells();
     }
     return SDL_APP_CONTINUE;
 }
@@ -300,10 +325,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    if (changed)
+    if (stepping)
     {
+        nextStep();
         displayCells();
-        changed = 0;
     }
 
     return SDL_APP_CONTINUE;
@@ -312,6 +337,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
+    printf("%llu\n", iterationCount);
     freeBucket(bucket);
     free(bucket);
     freeBucket(bucketNext);
