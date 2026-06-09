@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define IS_BIT_PRESENT(bytes, bit) (!~(bytes | ~(1 << bit)))
+#define IS_BIT_PRESENT(bytes, bit) (bytes & (1 << bit))
 
 #define BUCKET_SIZE 2048
 

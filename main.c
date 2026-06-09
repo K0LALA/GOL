@@ -191,13 +191,13 @@ void displayCells()
     int i;
     for (i = 0; i < BUCKET_SIZE; i++)
     {
-        if (!(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)] & 1 << BUCKET_FILLED_LIST_BIT_SHIFT(i)))
+        if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
         {
             continue;
         }
 
         // Compute the color for this bucket
-        int H = i % 360;
+        /*int H = i % 360;
         float X = C * (1 - abs((H / 60) % 2 - 1));
         unsigned char r, g, b;
         if (H <= 60)
@@ -237,7 +237,7 @@ void displayCells()
             b = (X + m) * 255;
         }
 
-        SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+        SDL_SetRenderDrawColor(renderer, r, g, b, 255);*/
         ChainedListNode *currentCell = &bucket->chainedLists[i];
         do
         {
