@@ -9,7 +9,19 @@
 /// @return The hash
 static CELL_COORDINATE_TYPE hashCoordinates(COORDINATE_TYPE x, COORDINATE_TYPE y)
 {
-    return (y << CELL_COORDINATE_Y_BIT_SHIFT) | x;
+    uint32_t result = 0;
+
+    uint16_t ux = (uint16_t)x;
+    uint16_t uy = (uint16_t)y;
+
+    for (int i = 0; i < 16; i++) {
+        int shift = 15 - i;
+
+        result |= ((uint32_t)((uy >> shift) & 1)) << (31 - 2 * i);
+        result |= ((uint32_t)((ux >> shift) & 1)) << (30 - 2 * i);
+    }
+
+    return result;
 }
 
 /// @brief Adds the element of coordinates (x;y) to the chained lists of the bucket corresponding to the coordinates' hash
@@ -110,6 +122,7 @@ void deepCopy(Bucket *dst, Bucket *src)
         {
             dst->chainedLists[i].x = 0;
             dst->chainedLists[i].y = 0;
+            freeChainedList(dst->chainedLists[i].next);
             dst->chainedLists[i].next = NULL;
         }
         else
@@ -136,6 +149,8 @@ void deepCopy(Bucket *dst, Bucket *src)
     }
 }
 
+/// @brief Frees a chained list from the given element to the end
+/// @param chainedListStart A pointer to the starting element of the chained list
 static void freeChainedList(ChainedListNode* chainedListStart)
 {
     if (chainedListStart == NULL) return;
@@ -144,6 +159,8 @@ static void freeChainedList(ChainedListNode* chainedListStart)
     freeChainedList(next);
 }
 
+/// @brief Frees the memory allocated for the bucket and its content
+/// @param bucket The pointer to the bucket
 void freeBucket(Bucket* bucket)
 {
     ChainedListNode currentChainedList;
@@ -153,7 +170,8 @@ void freeBucket(Bucket* bucket)
         if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
             continue;
         currentChainedList = bucket->chainedLists[i];
-        // We don't want to free the current element since it is on the stack and not the heap
+        // We don't want to free the current element since it is directly part of the bucket
         freeChainedList(currentChainedList.next);
     }
+    free(bucket);
 }

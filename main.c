@@ -9,6 +9,8 @@
 
 #include "main.h"
 
+#define PIXEL_SIZE 1
+
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 
@@ -23,7 +25,6 @@ static char stepping = 0;
 
 static unsigned long long iterationCount = 0;
 
-#define PIXEL_SIZE 1
 
 void addCell(int16_t x, int16_t y)
 {
@@ -41,13 +42,13 @@ void addCell(int16_t x, int16_t y)
     }
 }
 
-void initCells()
+void initCells(unsigned int w, unsigned int h)
 {
     int y;
-    for (y = 0; y < 500; y++)
+    for (y = 0; y < w; y++)
     {
         int x;
-        for (x = 0; x < 500; x++)
+        for (x = 0; x < h; x++)
         {
             if(!(rand() % 13))
             {
@@ -71,7 +72,7 @@ void initPattern(char* fileName, int offsetX, int offsetY)
     unsigned int run_count = 0;
     unsigned int x = 0;
     unsigned int y = 0;
-    while (character != EOF)
+    do
     {
         character = fgetc(patternFile);
         if (finishLine)
@@ -123,7 +124,7 @@ void initPattern(char* fileName, int offsetX, int offsetY)
             fseek(patternFile, 0, SEEK_END);
             break;
         }
-    }
+    } while (character != EOF);
     fclose(patternFile);
 }
 
@@ -153,25 +154,33 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     bucket = createBucket();
     bucketNext = createBucket();
     potentialNext = createBucket();
-    
+    potential = createBucket();
 
-    if (argc == 4)
+    switch (argc)
     {
-        initPattern(argv[1], atoi(argv[2]), atoi(argv[3]));
-    }
-    else if (argc == 2)
-    {
+    case 2:
         initPattern(argv[1], 0, 0);
-    }
-    else
-    {
-        initCells();
+        break;
+
+    case 3:
+        initCells(atoi(argv[1]), atoi(argv[2]));
+        break;
+
+    case 4:
+        initPattern(argv[1], atoi(argv[2]), atoi(argv[3]));
+        break;
+    
+    default:
+        initCells(500, 500);
+        break;
     }
 
     displayCells();
 
     return SDL_APP_CONTINUE;
 }
+const float C = (1 - (2*0.75f - 1)) * 0.75f;
+const float m = 0.75f - 0.75f/2;
 
 void displayCells()
 {
@@ -182,10 +191,53 @@ void displayCells()
     int i;
     for (i = 0; i < BUCKET_SIZE; i++)
     {
-        if (!IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
+        if (!(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)] & 1 << BUCKET_FILLED_LIST_BIT_SHIFT(i)))
         {
             continue;
         }
+
+        // Compute the color for this bucket
+        int H = i % 360;
+        float X = C * (1 - abs((H / 60) % 2 - 1));
+        unsigned char r, g, b;
+        if (H <= 60)
+        {
+            r = (C + m) * 255;
+            g = (X + m) * 255;
+            b = m * 255;
+        }
+        else if (H <= 120)
+        {
+            r = (X + m) * 255;
+            g = (C + m) * 255;
+            b = m * 255;
+        }
+        else if (H <= 180)
+        {
+            r = m * 255;
+            g = (C + m) * 255;
+            b = (X + m) * 255;
+        }
+        else if (H <= 240)
+        {
+            r = m * 255;
+            g = (X + m) * 255;
+            b = (C + m) * 255;
+        }
+        else if (H <= 300)
+        {
+            r = (X + m) * 255;
+            g = m * 255;
+            b = (C + m) * 255;
+        }
+        else
+        {            
+            r = (C + m) * 255;
+            g = m * 255;
+            b = (X + m) * 255;
+        }
+
+        SDL_SetRenderDrawColor(renderer, r, g, b, 255);
         ChainedListNode *currentCell = &bucket->chainedLists[i];
         do
         {
@@ -207,11 +259,13 @@ void nextStep()
 {
     iterationCount++;
     // setActive = setActiveNext
-    bucket = bucketNext;
+    deepCopy(bucket, bucketNext);
+    freeBucket(bucketNext);
     // setActiveNext.clear()
     bucketNext = createBucket();
     // setPotential = setPotentialNext
-    potential = potentialNext;
+    deepCopy(potential, potentialNext);
+    freeBucket(potentialNext);
     potentialNext = createBucket();
     // setPotentialNext = setActive
     deepCopy(potentialNext, bucket);
@@ -279,6 +333,8 @@ void nextStep()
             currentCell = currentCell->next;
         } while (currentCell != NULL);
     }
+
+    
 }
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
@@ -339,9 +395,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
     printf("%llu\n", iterationCount);
     freeBucket(bucket);
-    free(bucket);
     freeBucket(bucketNext);
-    free(bucketNext);
     freeBucket(potentialNext);
-    free(potentialNext);
+    SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(renderer);
 }
