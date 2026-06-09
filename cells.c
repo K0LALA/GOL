@@ -3,6 +3,9 @@
 
 #include "cells.h"
 
+static CELL_COORDINATE_TYPE hashCoordinates(COORDINATE_TYPE x, COORDINATE_TYPE y);
+static void freeChainedList(ChainedListNode* chainedListStart);
+
 /// @brief Hashes the coordinate into a unique hash, composed of the y-coordinate in the most significant digits and the x-coordinate in the least significant bits
 /// @param x The x-coordinate of the cell
 /// @param y The y-coordinate of the cell
@@ -85,29 +88,16 @@ int isInBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y)
     return 0;
 }
 
-/// @brief Returns the next initialized chained list starting from the one whose index is startIndex
-/// @param bucket A pointer to the bucket
-/// @param startIndex A pointer to the index of the index to search from
-/// @return A pointer to the next chained list node if it exists, NULL otherwise
-ChainedListNode* getNextChainedList(Bucket *bucket, uint64_t *startIndex)
-{
-    int i = *startIndex;
-    while (i < BUCKET_SIZE && !IS_BIT_PRESENT(bucket->areFilled[BUCKET_FILLED_LIST_INDEX(i)], BUCKET_FILLED_LIST_BIT_SHIFT(i)))
-    {
-        i++;
-    }
-    *startIndex = i;
-    return (i < BUCKET_SIZE ? &bucket->chainedLists[i] : NULL);
-}
-
+/// @brief Allocates memory for a bucket on the heap
+/// @return A pointer to the bucket
 Bucket* createBucket()
 {
-    Bucket* bucket = (Bucket*)calloc(1, sizeof(Bucket));
-
-    return bucket;
-
+    return (Bucket*)calloc(1, sizeof(Bucket));
 }
 
+/// @brief Deep-copies the bucket from src to dst, meaning src and dst are not related to each other.
+/// @param dst A pointer to the destination bucket, needsto have allocated memory. If not empty, its content is freed
+/// @param src A pointer to the source bucket, stays unchanged
 void deepCopy(Bucket *dst, Bucket *src)
 {
     int i;

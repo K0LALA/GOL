@@ -31,13 +31,10 @@ struct Bucket {
     ChainedListNode chainedLists[BUCKET_SIZE];      // List of starting elements of chained lists
 };
 
-static CELL_COORDINATE_TYPE hashCoordinates(COORDINATE_TYPE x, COORDINATE_TYPE y);
 void addToBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y);
 int isInBucket(Bucket *bucket, COORDINATE_TYPE x, COORDINATE_TYPE y);
-ChainedListNode* getNextChainedList(Bucket *bucket, uint64_t *startIndex);
 Bucket* createBucket();
 void deepCopy(Bucket* dst, Bucket* src);
-static void freeChainedList(ChainedListNode* chainedListStart);
 void freeBucket(Bucket* bucket);
 
 #endif /* _CELLS_H */
