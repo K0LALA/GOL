@@ -7,9 +7,6 @@ It has a theoretically infinite grid by using a sparse encoding method as [javid
 
 # How to use
 
->[!IMPORTANT]
-> At the moment, only a UNIX version exists
-
 ## Launch
 
 Call `./gol` or `./gol-static` depending on the version you have.<br>
